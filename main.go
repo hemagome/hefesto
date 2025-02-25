@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/hemagome/hefesto/config"
 	"github.com/hemagome/hefesto/logging"
 	"github.com/hemagome/hefesto/storage"
+	"github.com/hemagome/hefesto/tui"
 
 	"go.uber.org/zap"
 )
@@ -36,20 +38,21 @@ func main() {
 		logging.Logger.Fatal("❌ Error asegurando el archivo de tokens", zap.Error(err))
 	}
 
-	provider := "github"
-	testToken := "mi-token-de-prueba"
-
-	err = storage.StoreToken(provider, testToken)
-	if err != nil {
-		logging.Logger.Error("❌ Error guardando token", zap.Error(err))
+	// Initialize and run TUI
+	p := tea.NewProgram(tui.NewTokenInput())
+	if _, err := p.Run(); err != nil {
+		logging.Logger.Fatal("❌ Error running TUI", zap.Error(err))
 	}
 
-	retrievedToken, err := storage.GetToken(provider)
+	// Verify token was stored
+	retrievedToken, err := storage.GetToken("github")
 	if err != nil {
 		logging.Logger.Error("❌ Error obteniendo token", zap.Error(err))
+	} else {
+		logging.Logger.Info("✅ Token guardado exitosamente",
+			zap.String("proveedor", "github"),
+			zap.String("token_length", fmt.Sprintf("%d chars", len(retrievedToken))))
 	}
-
-	logging.Logger.Info("🔑 Token recuperado", zap.String("proveedor", provider), zap.String("token", retrievedToken))
 }
 
 func ensureTokenFile(filename string) error {
